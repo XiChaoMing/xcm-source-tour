@@ -1,0 +1,25 @@
+{
+  "name": "xcm-source-tour",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "pnpm run --filter=\"@xcm-source-code/*\" build",
+    "test": "vitest packages/",
+    "test:once": "vitest run packages/",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint packages/**/src",
+    "lint:fix": "eslint packages/**/src --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@antfu/eslint-config": "^0.31.0",
+    "@vitest/coverage-istanbul": "^0.25.2",
+    "eslint": "^8.27.0",
+    "typescript": "^4.8.4",
+    "unbuild": "^0.9.4",
+    "vitest": "^0.25.1"
+  }
+}
