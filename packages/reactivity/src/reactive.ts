@@ -1,15 +1,17 @@
 import { isObject, toRawType } from '@xcm-source-code/utils'
 import { track, trigger } from './effect'
 
-export const COL_KEY = Symbol('collection')
+const ADD_PROTOTYPE_KEY = Symbol('collection_add')
+const DELETE_PROTOTYPE_KEY = Symbol('collection_delete')
+const HAS_PROTOTYPE_KEY = Symbol('collection_has')
 
-const enum TargetType {
+enum TargetType {
   INVALID = 0,
-  COMMON = 1, // 普通对象
-  COLLECTION = 2, // set, map, weakmap
+  COMMON = 1,
+  COLLECTION = 2,
 }
 
-function targetTypeMap(type: string) {
+function getTargetType(type: string) {
   switch (type) {
     case 'Object':
     case 'Array':
@@ -24,55 +26,59 @@ function targetTypeMap(type: string) {
   }
 }
 
-const baseHandlers = {
-  get(target, key, receiver) {
-    const returnVal = Reflect.get(target, key, receiver)
-    // 收集依赖关系
-    track(target, 'get', key)
-    return isObject(returnVal) ? reactive(returnVal) : returnVal
+const baseHandlers: ProxyHandler<object> = {
+  get(target, propertyKey, receiver) {
+    const val = Reflect.get(target, propertyKey, receiver)
+    track(target, 'get', propertyKey)
+    return isObject(val) ? reactive(val) : val
   },
-  set(target, key, val, receiver) {
-    // 修改数据，执行副作用函数
-    const ret = Reflect.set(target, key, val, receiver)
-    trigger(target, 'set', key)
-    return ret
+  set(target, propertyKey, val, receiver) {
+    const afterVal = Reflect.set(target, propertyKey, val, receiver)
+    trigger(target, 'set', propertyKey)
+    return afterVal
   },
-  deleteProperty(target, key) {
-    Reflect.deleteProperty(target, key)
-    trigger(target, 'delete', key)
+  deleteProperty(target, propertyKey) {
+    Reflect.deleteProperty(target, propertyKey)
+    trigger(target, 'delete', propertyKey)
     return true
   },
 }
 
-const collectionActions = {
-  add(key) {
-    const target = this['__reactive_raw']
-    const ret = target.add(key)
-    trigger(target, 'collection-add', key)
-    return ret
+const collectionHandlers: ProxyHandler<object> = {
+  get(target, propertyKey, receiver) {
+    if (propertyKey === 'size') {
+      track(target, 'collection-size', propertyKey)
+      return Reflect.get(target, propertyKey)
+    }
+    if (propertyKey === 'add') {
+      return (addValue: unknown) => {
+        // 调用原来 target 对象的 add 方法
+        const result = target.add(addValue)
+        track(target, 'collection-add', ADD_PROTOTYPE_KEY)
+        trigger(target, 'collection-add', ADD_PROTOTYPE_KEY)
+        return result
+      }
+    }
+    if (propertyKey === 'delete') {
+      return (deleteValue) => {
+        const result = target.delete(deleteValue)
+        track(target, 'collection-delete', DELETE_PROTOTYPE_KEY)
+        trigger(target, 'collection-delete', DELETE_PROTOTYPE_KEY)
+        return result
+      }
+    }
+    if (propertyKey === 'has') {
+      return (hasValue) => {
+        const result = target.has(hasValue)
+        track(target, 'collection-has', HAS_PROTOTYPE_KEY)
+        trigger(target, 'collection-has', HAS_PROTOTYPE_KEY)
+        return result
+      }
+    }
   },
-  delete() {},
-  has() {},
 }
 
-const collectionHandlers = {
-  get(target, key) {
-    if (key === '__reactive_raw') {
-      return target
-    }
-    if (key === 'size') {
-      // size 属性的响应式监听
-      track(target, 'collection-size', COL_KEY)
-      return Reflect.get(target, key)
-    }
-    return collectionActions[key]
-    // set.add
-    // set.delete
-    // set.has
-  },
-}
-
-export function reactive(obj: any) {
-  const handlers = targetTypeMap(toRawType(obj)) === TargetType.COMMON ? baseHandlers : collectionHandlers
+export function reactive(obj: unknown) {
+  const handlers = getTargetType(toRawType(obj)) === TargetType.COMMON ? baseHandlers : collectionHandlers
   return new Proxy(obj, handlers)
 }

@@ -1,39 +1,37 @@
 import { describe, expect, it } from 'vitest'
-import { effect, reactive, ref } from '../src'
+import { reactive, effect, ref } from '../src'
 
-describe('响应式', () => {
-  it('reactive 基本功能', () => {
-    let value
-    // obj 是一个响应式对象
-    const obj = reactive({ count: 1 })
+describe('test reactive', () => {
+  it('base', () => {
+    let value: number
+    // get a reactive object
+    const obj = reactive({ count: 0 })
 
-    // obj.count 发生变化，会执行 effect 中的函数，实时赋值给 value
+    // listen obj change
     effect(() => {
       value = obj.count
     })
 
-    expect(value).toBe(1)
+    expect(value).toBe(0)
 
     obj.count++
 
-    expect(value).toBe(2)
+    expect(value).toBe(1)
   })
 
   it('reactive 支持嵌套', () => {
-    let value
-    // obj 是一个响应式对象
-    const obj = reactive({ id: 1, info: { usename: 'xiaoming' } })
+    let value: unknown
+    const obj = reactive({ id: 1, info: { username: 'xcm' } })
 
-    // obj.count 发生变化，会执行 effect 中的函数，实时赋值给 value
     effect(() => {
-      value = obj.info.usename
+      value = obj.info.username
     })
 
+    expect(value).toBe('xcm')
+
+    obj.info.username = 'xiaoming'
+
     expect(value).toBe('xiaoming')
-
-    obj.info.usename = 'lisi'
-
-    expect(value).toBe('lisi')
   })
 
   it('ref 测试', () => {
@@ -47,55 +45,88 @@ describe('响应式', () => {
     expect(value).toBe(1)
 
     num.value++
+
     expect(value).toBe(2)
   })
 
   it('ref 的复杂数据类型', () => {
-    let value
-    const obj = ref({ count: 1 })
+    let value1
+    let value2
+    let refObj = ref({ count: 1, user: { name: 'zhangsan', age: 30 } })
 
     effect(() => {
-      value = obj.value.count
+      value1 = refObj.value.count
+      value2 = refObj.value.user.name
     })
 
-    expect(value).toBe(1)
+    expect(value1).toBe(1)
+    expect(value2).toBe('zhangsan')
 
-    obj.value.count++
-    expect(value).toBe(2)
+    refObj.value.count++
+    refObj.value.user.name = 'lisi'
+
+    expect(value1).toBe(2)
+    expect(value2).toBe('lisi')
   })
 
   it('删除属性的响应式', () => {
-    let obj = reactive({ name: 'zhangsan', count: 1 })
-    let val
+    let value
+    let obj = reactive({ name: 'zhangsan', age: 30 })
+
     effect(() => {
-      val = obj.name
+      value = obj.name
     })
-    expect(val).toBe('zhangsan')
+
+    expect(value).toBe('zhangsan')
+
     delete obj.name
-    expect(val).toBeUndefined()
+
+    expect(value).toBeUndefined()
   })
 })
 
 describe('支持 set/map', () => {
   it('set', () => {
+    let value
     let set = reactive(new Set([1]))
-    let val
+
     effect(() => {
-      val = set.size
+      value = set.size
     })
-    expect(val).toBe(1)
+
+    expect(value).toBe(1)
+
     set.add(2)
-    expect(val).toBe(2)
+
+    expect(value).toBe(2)
   })
 
-  it('set 的删除', () => {
+  it('set delete', () => {
+    let value
     let set = reactive(new Set([1, 2]))
-    let val
+
     effect(() => {
-      val = set.size
+      value = set.size
     })
-    expect(val).toBe(2)
+
+    expect(value).toBe(2)
+
     set.delete(1)
-    expect(val).toBe(1)
+
+    expect(value).toBe(1)
+
+    set.delete(2)
+
+    expect(value).toBe(0)
+  })
+
+  it('set 的 has 方法', () => {
+    const set = reactive(new Set([1, 2]))
+
+    expect(set.has(1)).toBeTruthy()
+    expect(set.has(2)).toBeTruthy()
+    set.delete(2)
+    expect(set.has(1)).toBeTruthy()
+    expect(set.has(2)).toBeFalsy()
   })
 })

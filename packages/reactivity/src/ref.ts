@@ -2,32 +2,28 @@ import { isObject } from '@xcm-source-code/utils'
 import { track, trigger } from './effect'
 import { reactive } from './reactive'
 
-function convert(val: unknown) {
-  return isObject(val) ? reactive(val) : val
-}
+const REF_KEY = 'ref-value'
 
-class RefImplement {
-  isRef: boolean
-  _val: any
+class RefClass {
+  _val: unknown
 
-  constructor(val) {
-    this.isRef = true
-    this._val = convert(val)
+  constructor(value: unknown) {
+    this._val = isObject(value) ? reactive(value) : value
   }
 
   get value() {
-    track(this, 'ref-get', 'value')
+    track(this, 'ref-get', REF_KEY)
     return this._val
   }
 
-  set value(newVal: unknown) {
-    if (newVal !== this._val) {
-      this._val = newVal
-      trigger(this, 'ref-set', 'value')
+  set value(newValue: unknown) {
+    if (newValue !== this._val) {
+      this._val = newValue
+      trigger(this, 'ref-set', REF_KEY)
     }
   }
 }
 
-export function ref(val: any) {
-  return new RefImplement(val)
+export function ref(value: unknown) {
+  return new RefClass(value)
 }

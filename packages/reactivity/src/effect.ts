@@ -1,65 +1,51 @@
-import { COL_KEY } from './reactive'
+type ProxyType =
+  | 'get'
+  | 'set'
+  | 'ref-set'
+  | 'ref-get'
+  | 'delete'
+  | 'collection-size'
+  | 'collection-add'
+  | 'collection-delete'
+  | 'collection-has'
+type PropertyType = string | symbol
 
-/**
- * 存储依赖关系
- *   使用 weakmap 性能比 map 好
- *   数据结构: { 变量: { 属性1: [effect1, effect2] } }
- */
-const targetMap = new WeakMap()
+// 记录映射关系
+const targetEffectMaps = new WeakMap()
+// 临时记录调用 effect 传入的函数
+let activeEffectFunc: Function
+// activeEffectFunc 的调用栈
+const activeEffectFuncStack = []
 
-// 存储全局的副作用
-let activeEffect
-const effectStack = []
-
-/**
- * 绑定副作用映射关系
- * @param obj
- * @param type 操作类型 get | set
- * @param key
- * @returns
- */
-export function track(obj, type, key) {
-  if (!activeEffect) return
-  let depsMap = targetMap.get(obj)
-  if (!depsMap) {
-    depsMap = new Map()
-    targetMap.set(obj, depsMap)
+// get 方法中调用，手机依赖关系
+export function track(target: unknown, type: ProxyType, propertyKey: PropertyType) {
+  let targetEffect = targetEffectMaps.get(target)
+  if (!targetEffect) {
+    targetEffect = new Map()
+    targetEffectMaps.set(target, targetEffect)
   }
-  let deps = depsMap.get(key)
-  if (!deps) {
-    // 可以去重
-    deps = new Set()
-    depsMap.set(key, deps)
+  let effectFuncs = targetEffect.get(propertyKey)
+  if (!effectFuncs) {
+    effectFuncs = new Set()
+    targetEffect.set(propertyKey, effectFuncs)
   }
-  // 将副作用函数放入
-  deps.add(activeEffect)
+  if (activeEffectFunc) effectFuncs.add(activeEffectFunc)
 }
 
-/**
- * 触发副作用函数执行
- * @param obj
- * @param type 操作类型 et | set
- * @param key
- * @returns
- */
-export function trigger(obj, type, key) {
-  const depsMap = targetMap.get(obj)
-  if (!depsMap) return
-  if (type === 'collection-add') {
-    key = COL_KEY
-  }
-  const deps = depsMap.get(key)
-  if (deps) {
-    deps.forEach((effectFn) => effectFn())
-  }
+export function trigger(target: unknown, type: ProxyType, propertyKey: PropertyType) {
+  // 取出 target 的 effect 映射数据
+  const targetEffect = targetEffectMaps.get(target)
+  if (!targetEffect) return
+
+  const effectFuncs = targetEffect.get(propertyKey)
+  if (effectFuncs) effectFuncs.forEach((func) => func())
 }
 
 export function effect(fn) {
-  activeEffect = fn
-  effectStack.push(activeEffect)
-  fn() // 会触发 Proxy 的 get 方法，执行 track，执行完重置
-  // fn 内部还有 effect，activeEffect 指向就错误了
-  effectStack.pop()
-  // 恢复上一个嵌套的值
-  activeEffect = effectStack[effectStack.length - 1]
+  activeEffectFunc = fn
+  // activeEffectFuncStack.push(fn)
+  // fn() 执行的时候，如果内部调用了 reactive 对象的 get 方法，会进入 track 方法中
+  fn()
+  // activeEffectFuncStack.pop()
+  // activeEffectFunc = activeEffectFuncStack[activeEffectFuncStack.length - 1]
 }
