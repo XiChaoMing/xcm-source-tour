@@ -1,13 +1,14 @@
-import { isObject, toRawType } from '@xcm-source-code/utils'
-import { track, trigger } from './effect'
-
-export const COL_KEY = Symbol('collection')
+import { toRawType } from '@xcm-source-code/utils'
+import { baseHandlers } from './baseHandlers'
+import { collectionHandlers } from './collectionHandlers'
 
 const enum TargetType {
   INVALID = 0,
   COMMON = 1, // 普通对象
   COLLECTION = 2, // set, map, weakmap
 }
+
+export const COL_KEY = Symbol('collection')
 
 export const ReactiveFlags = {
   RAW: '__reactive_raw',
@@ -26,64 +27,6 @@ function targetTypeMap(type: string) {
     default:
       return TargetType.INVALID
   }
-}
-
-const baseHandlers = {
-  get(target, key, receiver) {
-    const returnVal = Reflect.get(target, key, receiver)
-    // 收集依赖关系
-    track(target, 'get', key)
-    return isObject(returnVal) ? reactive(returnVal) : returnVal
-  },
-  set(target, key, val, receiver) {
-    // 修改数据，执行副作用函数
-    const ret = Reflect.set(target, key, val, receiver)
-    trigger(target, 'set', key)
-    return ret
-  },
-  deleteProperty(target, key) {
-    Reflect.deleteProperty(target, key)
-    trigger(target, 'delete', key)
-    return true
-  },
-}
-
-const collectionActions = {
-  add(key) {
-    const target = this[ReactiveFlags.RAW]
-    const ret = target.add(key)
-    trigger(target, 'collection-add', key)
-    return ret
-  },
-  delete(key) {
-    const target = this[ReactiveFlags.RAW]
-    const ret = target.delete(key)
-    trigger(target, 'collection-delete', key)
-    return ret
-  },
-  has(key) {
-    const target = this[ReactiveFlags.RAW]
-    const ret = target.has(key)
-    trigger(target, 'collection-has', key)
-    return ret
-  },
-}
-
-const collectionHandlers = {
-  get(target, key) {
-    if (key === ReactiveFlags.RAW) {
-      return target
-    }
-    if (key === 'size') {
-      // size 属性的响应式监听
-      track(target, 'collection-size', COL_KEY)
-      return Reflect.get(target, key)
-    }
-    return collectionActions[key]
-    // set.add
-    // set.delete
-    // set.has
-  },
 }
 
 export function reactive(obj: any) {
