@@ -98,4 +98,14 @@ describe('支持 set/map', () => {
     set.delete(1)
     expect(val).toBe(1)
   })
+
+  it('set 的 has 方法', () => {
+    const set = reactive(new Set([1, 2]))
+
+    expect(set.has(1)).toBeTruthy()
+    expect(set.has(2)).toBeTruthy()
+    set.delete(2)
+    expect(set.has(1)).toBeTruthy()
+    expect(set.has(2)).toBeFalsy()
+  })
 })
