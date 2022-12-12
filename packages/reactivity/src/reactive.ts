@@ -1,5 +1,5 @@
 import { toRawType } from '@xcm-source-code/utils'
-import { baseHandlers } from './baseHandlers'
+import { baseHandlers, shadowReactiveHandlers } from './baseHandlers'
 import { collectionHandlers } from './collectionHandlers'
 
 const enum TargetType {
@@ -27,6 +27,12 @@ function targetTypeMap(type: string) {
     default:
       return TargetType.INVALID
   }
+}
+
+// 浅响应（对象内部的对象，不做响应式处理）
+export function shadowReactive(obj: any) {
+  const handlers = targetTypeMap(toRawType(obj)) === TargetType.COMMON ? shadowReactiveHandlers : collectionHandlers
+  return new Proxy(obj, handlers)
 }
 
 export function reactive(obj: any) {

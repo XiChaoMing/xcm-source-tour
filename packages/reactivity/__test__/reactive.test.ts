@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effect, reactive, ref } from '../src'
+import { effect, reactive, ref, shadowReactive } from '../src'
 
 describe('响应式', () => {
   it('reactive 基本功能', () => {
@@ -107,5 +107,30 @@ describe('支持 set/map', () => {
     set.delete(2)
     expect(set.has(1)).toBeTruthy()
     expect(set.has(2)).toBeFalsy()
+  })
+})
+
+describe('浅层响应式', () => {
+  it('shadowReactive 支持嵌套', () => {
+    let value1, value2
+    // obj 是一个响应式对象
+    const obj = shadowReactive({ id: 1, info: { usename: 'xiaoming' } })
+
+    // obj.count 发生变化，会执行 effect 中的函数，实时赋值给 value
+    effect(() => {
+      value1 = obj.info.usename
+    })
+    effect(() => {
+      value2 = obj.id
+    })
+
+    expect(value1).toBe('xiaoming')
+    expect(value2).toBe(1)
+
+    obj.info.usename = 'lisi'
+    obj.id++
+
+    expect(value1).toBe('xiaoming')
+    expect(value2).toBe(2)
   })
 })
