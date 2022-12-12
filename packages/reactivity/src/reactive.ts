@@ -12,6 +12,11 @@ export const COL_KEY = Symbol('collection')
 
 export const ReactiveFlags = {
   RAW: '__reactive_raw',
+  IS_REACTIVE: '__is_reactive',
+}
+
+export function isReactive(val: any) {
+  return val[ReactiveFlags.IS_REACTIVE]
 }
 
 function targetTypeMap(type: string) {

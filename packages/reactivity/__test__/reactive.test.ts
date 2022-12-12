@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effect, reactive, ref, shadowReactive } from '../src'
+import { effect, reactive, ref, shadowReactive, isReactive, isRef } from '../src'
 
 describe('响应式', () => {
   it('reactive 基本功能', () => {
@@ -34,6 +34,15 @@ describe('响应式', () => {
     obj.info.usename = 'lisi'
 
     expect(value).toBe('lisi')
+  })
+
+  it('工具函数测试', () => {
+    let val1 = ref(1)
+    let val2 = reactive({ name: 'zhangsan' })
+    let val3 = shadowReactive({ name: 'xiaoming' })
+    expect(isRef(val1)).toBeTruthy()
+    expect(isReactive(val2)).toBeTruthy()
+    expect(isReactive(val3)).toBeTruthy()
   })
 
   it('ref 测试', () => {

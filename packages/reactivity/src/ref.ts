@@ -6,6 +6,10 @@ function convert(val: unknown) {
   return isObject(val) ? reactive(val) : val
 }
 
+export function isRef(val) {
+  return val.isRef
+}
+
 class RefImplement {
   isRef: boolean
   _val: any

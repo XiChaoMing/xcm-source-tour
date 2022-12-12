@@ -1,9 +1,12 @@
 import { isObject } from '@xcm-source-code/utils'
 import { track, trigger } from './effect'
-import { reactive } from './reactive'
+import { reactive, ReactiveFlags } from './reactive'
 
 function createGetter(isShadow: boolean) {
   return function get(target, key, receiver) {
+    if (key === ReactiveFlags.IS_REACTIVE) {
+      return true
+    }
     const returnVal = Reflect.get(target, key, receiver)
     // 收集依赖关系
     track(target, 'get', key)
