@@ -33,6 +33,7 @@ export function track(obj, type, key) {
   }
   // 将副作用函数放入
   deps.add(activeEffect)
+  activeEffect.deps.push(deps)
 }
 
 /**
@@ -50,16 +51,37 @@ export function trigger(obj, type, key) {
   }
   const deps = depsMap.get(key)
   if (deps) {
-    deps.forEach((effectFn) => effectFn())
+    const depsToRun = new Set(deps)
+    depsToRun.forEach((effectFn) => effectFn())
   }
 }
 
+function cleanup(effectFn) {
+  // effectFn 的依赖清理
+  for (let i = 0; i < effectFn.deps.length; i++) {
+    effectFn.deps[i].delete(effectFn)
+  }
+  effectFn.deps = []
+}
+
 export function effect(fn) {
-  activeEffect = fn
-  effectStack.push(activeEffect)
-  fn() // 会触发 Proxy 的 get 方法，执行 track，执行完重置
-  // fn 内部还有 effect，activeEffect 指向就错误了
-  effectStack.pop()
-  // 恢复上一个嵌套的值
-  activeEffect = effectStack[effectStack.length - 1]
+  const effectFn = () => {
+    let result
+    try {
+      activeEffect = effectFn
+      effectStack.push(activeEffect)
+      cleanup(effectFn)
+      result = fn() // 会触发 Proxy 的 get 方法，执行 track，执行依赖收集的
+    } finally {
+      // 在这里执行 effect 清理
+      // fn 内部还有 effect，activeEffect 指向就错误了
+      effectStack.pop()
+      // 恢复上一个嵌套的值
+      activeEffect = effectStack[effectStack.length - 1]
+    }
+    return result
+  }
+  effectFn.deps = []
+  effectFn()
+  return effectFn
 }

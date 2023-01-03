@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { effect, reactive, ref, shadowReactive, isReactive, isRef } from '../src'
 
 describe('响应式', () => {
@@ -71,6 +71,52 @@ describe('响应式', () => {
 
     obj.value.count++
     expect(value).toBe(2)
+  })
+
+  it('响应式清理', () => {
+    let obj = reactive({
+      ok: true,
+      name: 'xiaoming',
+    })
+    let val
+    let fn = vi.fn(() => {
+      // obj.ok 是 true，val 是响应式的，ok 是 false，val 就是非响应式的，永远是 vue3
+      val = obj.ok ? obj.name : 'vue3'
+    })
+
+    effect(fn)
+
+    expect(val).toBe('xiaoming')
+    expect(fn).toBeCalledTimes(1)
+
+    obj.ok = false
+
+    expect(val).toBe('vue3')
+    expect(fn).toBeCalledTimes(2)
+
+    // 这时，val 的值再也不会依赖 obj.name
+
+    obj.name = 'zhangsan'
+    expect(fn).toBeCalledTimes(2)
+  })
+
+  it('es6 set遍历的缺陷', () => {
+    let fn = () => {
+      const set = new Set([1])
+      let n = 1
+      // 解决死循环的方式，重新 new 一个出来，用 setToRun 执行 forEach
+      // const setToRun = new Set(set)
+      set.forEach((v) => {
+        set.delete(1)
+        set.add(1) // 此时 set 没变化，但是会造成死循环
+        n += 1
+        if (n > 99) {
+          throw new Error('set 死循环')
+        }
+      })
+    }
+
+    expect(() => fn()).toThrowError('set 死循环')
   })
 
   it('删除属性的响应式', () => {
