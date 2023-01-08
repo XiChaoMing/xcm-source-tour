@@ -58,6 +58,7 @@ export function trigger(obj, type, key) {
 
 function cleanup(effectFn) {
   // effectFn 的依赖清理
+  // 全部清理，track 的时候重新收集，Vue3.2 的时候进行了优化（使用位运算）
   for (let i = 0; i < effectFn.deps.length; i++) {
     effectFn.deps[i].delete(effectFn)
   }
