@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    import { reactive, effect } from '@xcm-source-code/reactivity'
+
+    const container = document.querySelector('#app')
+
+    const obj = reactive({ msg: 'hello world' })
+
+    const App = {
+      type: 'h2',
+      children: obj.msg,
+    }
+
+
+
+    // 描述 组件/html标签 的对象，称之为 vnode
+    function render (container, vnode) {
+      if (container._vnode) {
+        // 更新（patch update 逻辑）
+        patch()
+      } else {
+        // 首次渲染 mount
+        container.innerHTML = vnode.children
+        container._vnode = vnode
+      }
+    }
+
+    const nodeOps = {
+      createElement (...args) {
+        return document.createElement(...args)
+      },
+      insert () { },
+      setText () {
+        // 设置文本
+      },
+      // 更新属性
+      patchProps (el, key, prev, next) { }
+    }
+    // 渲染器
+    function createRenderer (options) {
+      const { createElement, insert, setText, patchProps } = options
+      // 所有的操作，都和浏览器解耦
+      function patch (oldVNode, newVNode, container) {
+        // 更新组件，之前有一个 vnode，现在还有新的 vnode 怎么更新
+        // 判断新老 dom 是否可以复用
+        if (oldVNode.type !== newVNode.type) {
+          unmount(oldVNode)
+          mount(newVNode)
+        } else {
+          // 两个都是 div
+          // 更新属性
+          if (vnode.props) {
+            for (const key in vnode.props) {
+              patchProps(vnode.el, key, oldVNode.props[key], newVNode.props[key])
+            }
+          }
+
+          // 递归处理子元素
+          // if (oldVNode是文本, newVNode是元素) {
+          //   // 清理 old, createElement(newVNode)
+          // }
+          // if (oldVNode.children.length && newVNode.children.length) {
+          //   // 两个都是数组，最复杂的虚拟 dom diff
+          // }
+        }
+      }
+
+      function unmount (vnode) {
+        vnode.el.parentNode.removeChild(vnode.el)
+      }
+
+      function mount (vnode, container) {
+        if (typeof vnode.type === 'string') {
+          const ele = createElement(vnode.type)
+          setText(ele, vnode.children)
+          // props setAttribute()
+          insert(container, ele)
+        } else if (typeof vnode.type === 'function') {
+          // render 函数
+          // 组件的渲染逻辑。有 props，有 setup，有生命周期
+        }
+        // 递归 mount 子元素
+      }
+
+      function render (container, vnode) {
+        if (container._vnode) {
+          // 更新（patch update 逻辑）
+          patch(container._vnode, vnode, container)
+        } else {
+          // 首次渲染 mount
+          mount(vnode, container)
+          // TODO: 子元素的 mount
+          container._vnode = vnode
+        }
+      }
+    }
+    const renderer = createRenderer(nodeOps)
+
+    effect(() => {
+      render(container, App)
+    })
+
+    obj.msg = 'xxx'
+
+  </script>
+</body>
+
+</html>
