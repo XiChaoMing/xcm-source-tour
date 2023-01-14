@@ -18,14 +18,14 @@ importers:
       unbuild: registry.npmmirror.com/unbuild/0.9.4
       vitest: registry.npmmirror.com/vitest/0.25.1
 
-  packages/reactivity:
+  packages/utils:
+    specifiers: {}
+
+  vue/reactivity:
     specifiers:
       '@xcm-source-code/utils': workspace:*
     dependencies:
-      '@xcm-source-code/utils': link:../utils
-
-  packages/utils:
-    specifiers: {}
+      '@xcm-source-code/utils': link:../../packages/utils
 
 packages:
 

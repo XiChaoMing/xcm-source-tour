@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm run --filter=\"@xcm-source-code/*\" build",
-    "test": "vitest packages/",
-    "test:once": "vitest run packages/",
+    "test": "vitest .",
+    "test:once": "vitest run .",
     "coverage": "vitest run --coverage",
-    "lint": "eslint packages/**/src",
-    "lint:fix": "eslint packages/**/src --fix"
+    "lint": "eslint ./",
+    "lint:fix": "eslint ./ --fix"
   },
   "keywords": [],
   "author": "",
